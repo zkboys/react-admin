@@ -7,10 +7,11 @@ import {
     Popconfirm,
 } from 'antd';
 import uuid from 'uuid/v4';
-import {FormElement, Operator, TableEditable} from '@/library/antd';
+import {FormElement, Operator, rowDraggable, TableEditable} from '@/library/antd';
 import {connect} from "@/models";
 import {typeOptions, getTypeByMysqlType} from "@/pages/generator/utils";
 
+const Table = rowDraggable(TableEditable);
 
 @connect(state => ({
     baseInfo: state.baseInfo,
@@ -193,7 +194,7 @@ export default class EditPage extends Component {
 
         if (name !== oldName) {
             const ajaxUrl = `/${name}`;
-            const routePath = `/${name}/+edit/:id`;
+            const routePath = `/${name}/_/edit/:id`;
             const outPutFile = `${name}/${capitalName}Edit.jsx`;
 
             setFieldsValue({
@@ -211,7 +212,7 @@ export default class EditPage extends Component {
             form,
             this.fieldsTableForm,
         ].map(item => new Promise((resolve, reject) => {
-            item.validateFieldsAndScroll((err, values) => {
+            item && item.validateFieldsAndScroll((err, values) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -231,7 +232,8 @@ export default class EditPage extends Component {
         listPageFieldsValue.forEach(item => {
             // 过滤掉一些字段
             if (
-                item.dataIndex === 'createTime'
+                item.dataIndex === 'id'
+                || item.dataIndex === 'createTime'
                 || item.dataIndex === 'updateTime'
             ) return;
 
@@ -242,15 +244,13 @@ export default class EditPage extends Component {
                     dataIndex: item.dataIndex,
                     type: getTypeByMysqlType(item.sqlType),
                     length: item.sqlLength,
+                    isNullable: item.isNullable,
+                    isRequired: !item.isNullable,
                 });
             }
         });
 
         const newFieldsValue = oldFieldsValue.filter(item => item.title || item.dataIndex);
-
-        if (!newFieldsValue.find(item => item.dataIndex === 'id')) {
-            newFieldsValue.unshift({title: '主键', dataIndex: 'id', type: 'hidden', id: uuid()});
-        }
 
         console.log(newFieldsValue);
         this.props.form.setFieldsValue({fields: newFieldsValue});
@@ -265,7 +265,6 @@ export default class EditPage extends Component {
 
         return (
             <div>
-                表单字段：
                 {noSameField ? (
                     <Button disabled={!hasListPageField} onClick={this.handleSyncListPageFields}>同步列表页</Button>
                 ) : (
@@ -279,24 +278,37 @@ export default class EditPage extends Component {
         );
     };
 
-    ClearTable = ({field}) => {
+    ClearTable = ({field, type = 'danger'}) => {
         const fieldValue = this.props.form.getFieldValue(field);
+        const isEmpty = !fieldValue?.length || (fieldValue.length === 1 && !fieldValue[0].title);
 
-        if (fieldValue?.length) {
-            return (
-                <Popconfirm title="您确认清空吗？" onConfirm={() => this.props.form.setFieldsValue({[field]: []})}>
-                    <Button style={{marginLeft: 8}} type="primary">清空</Button>
-                </Popconfirm>
-            );
-        }
-        return null;
+        if (isEmpty) return null;
+
+        return (
+            <Popconfirm title="您确认清空吗？" onConfirm={() => this.props.form.setFieldsValue({[field]: []})}>
+                {type === 'link' ? (
+                    <a style={{marginLeft: 8, color: 'red'}}>清空</a>
+                ) : (
+                    <Button style={{marginLeft: 8}} type={type}>清空</Button>
+                )}
+            </Popconfirm>
+        );
+    };
+
+    handleSortEnd = ({oldIndex, newIndex, field}) => {
+        const {setFieldsValue, getFieldValue} = this.props.form;
+        const dataSource = [...getFieldValue(field)];
+
+        dataSource.splice(newIndex, 0, dataSource.splice(oldIndex, 1)[0]);
+
+        setFieldsValue({[field]: dataSource})
     };
 
     FormElement = (props) => <FormElement form={this.props.form} {...props}/>;
 
     render() {
         const {
-            form: {getFieldDecorator, getFieldError},
+            form: {getFieldDecorator},
             pagesDirectories,
         } = this.props;
 
@@ -367,15 +379,15 @@ export default class EditPage extends Component {
                         />
                     </Col>
                 </Row>
-                {getFieldDecorator('fields', {getValueFromEvent: e => e, valuePropName: 'dataSource'})(
-                    <TableEditable
+                {getFieldDecorator('fields', {getValueFromEvent: (dataSource, nextDataSource) => nextDataSource || dataSource, valuePropName: 'dataSource'})(
+                    <Table
                         size="small"
                         formRef={form => this.fieldsTableForm = form}
-                        hasError={getFieldError('fields')}
                         title={this.renderTableTitle}
                         columns={this.fieldsColumns}
-                        newRecord={{id: uuid(), title: '', dataIndex: ''}}
-                        onRowMoved={dataSource => this.props.form.setFieldsValue({fields: dataSource})}
+                        helperClass="generator-helper-element"
+                        onSortEnd={({oldIndex, newIndex}) => this.handleSortEnd({oldIndex, newIndex, field: 'fields'})}
+                        newRecord={{type: 'input'}}
                     />
                 )}
             </Form>

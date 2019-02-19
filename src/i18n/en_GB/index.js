@@ -12,6 +12,7 @@ export default {
     },
     menu: {
         menus: 'Menu & Permission',
+        codeGenerator: 'Code Generator',
         home: 'Home',
         document: 'Document',
         page404: '404 Not Found',
@@ -29,6 +30,7 @@ export default {
         google: 'Google',
 
         component: 'Component',
+        tableRowDraggable: 'Table Row Draggable',
         asyncSelect: 'Async Select',
         formElement: 'Form Element',
         formItemLayout: 'Form Item Layout',

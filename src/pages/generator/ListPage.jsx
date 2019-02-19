@@ -5,11 +5,14 @@ import {
     Col,
     Button,
     Popconfirm,
+    Tabs,
 } from 'antd';
 import uuid from 'uuid/v4';
-import {FormElement, Operator, TableEditable} from "@/library/antd";
+import {FormElement, Operator, TableEditable, rowDraggable} from "@/library/antd";
 import {connect} from "@/models";
-import {typeOptions} from './utils';
+import {typeOptions, getTypeByMysqlType} from "@/pages/generator/utils";
+
+const Table = rowDraggable(TableEditable);
 
 @connect(state => ({
     database: state.database,
@@ -118,7 +121,7 @@ export default class ListPage extends Component {
             width: '20%',
             dataIndex: 'operator',
             render: (text, record) => {
-                const {id, title, dataIndex} = record;
+                const {id, title, dataIndex, sqlType} = record;
                 const {form: {getFieldValue, setFieldsValue}} = this.props;
                 const value = getFieldValue('fields');
 
@@ -158,7 +161,7 @@ export default class ListPage extends Component {
                                 id: uuid(),
                                 label: title,
                                 field: dataIndex,
-                                type: 'input',
+                                type: getTypeByMysqlType(sqlType),
                             });
                             setFieldsValue({queryItems: items});
                         },
@@ -556,6 +559,7 @@ export default class ListPage extends Component {
                     dataIndex: item.camelCaseName,
                     sqlType: item.type,
                     sqlLength: item.length,
+                    isNullable: item.isNullable,
                 });
             }
         });
@@ -576,7 +580,6 @@ export default class ListPage extends Component {
 
         return (
             <div>
-                表格字段：
                 {noSameField ? (
                     <Button disabled={!hasDatabaseTableColumns} onClick={this.handleSyncDatabaseTableColumns}>同步数据库表字段</Button>
                 ) : (
@@ -590,24 +593,37 @@ export default class ListPage extends Component {
         );
     };
 
-    ClearTable = ({field}) => {
+    ClearTable = ({field, type = 'danger'}) => {
         const fieldValue = this.props.form.getFieldValue(field);
+        const isEmpty = !fieldValue?.length || (fieldValue.length === 1 && !fieldValue[0].title);
 
-        if (fieldValue?.length) {
-            return (
-                <Popconfirm title="您确认清空吗？" onConfirm={() => this.props.form.setFieldsValue({[field]: []})}>
-                    <Button style={{marginLeft: 8}} type="primary">清空</Button>
-                </Popconfirm>
-            );
-        }
-        return null;
+        if (isEmpty) return null;
+
+        return (
+            <Popconfirm title="您确认清空吗？" onConfirm={() => this.props.form.setFieldsValue({[field]: []})}>
+                {type === 'link' ? (
+                    <a style={{marginLeft: 8, color: 'red'}}>清空</a>
+                ) : (
+                    <Button style={{marginLeft: 8}} type={type}>清空</Button>
+                )}
+            </Popconfirm>
+        );
+    };
+
+    handleSortEnd = ({oldIndex, newIndex, field}) => {
+        const {setFieldsValue, getFieldValue} = this.props.form;
+        const dataSource = [...getFieldValue(field)];
+
+        dataSource.splice(newIndex, 0, dataSource.splice(oldIndex, 1)[0]);
+
+        setFieldsValue({[field]: dataSource})
     };
 
     FormElement = (props) => <FormElement form={this.props.form} {...props}/>;
 
     render() {
         const {
-            form: {getFieldDecorator, getFieldError},
+            form: {getFieldDecorator},
             pagesDirectories,
         } = this.props;
 
@@ -677,53 +693,55 @@ export default class ListPage extends Component {
                         />
                     </Col>
                 </Row>
-                {getFieldDecorator('fields', {getValueFromEvent: e => e, valuePropName: 'dataSource'})(
-                    <TableEditable
+                {getFieldDecorator('fields', {getValueFromEvent: (dataSource, nextDataSource) => nextDataSource || dataSource, valuePropName: 'dataSource'})(
+                    <Table
                         size="small"
                         formRef={form => this.fieldsTableForm = form}
-                        hasError={getFieldError('fields')}
                         title={() => this.renderTableTitle('fields')}
                         columns={this.fieldsColumns}
-                        newRecord={{id: uuid(), title: '', dataIndex: ''}}
-                        onRowMoved={dataSource => this.props.form.setFieldsValue({fields: dataSource})}
+                        helperClass="generator-helper-element"
+                        onSortEnd={({oldIndex, newIndex}) => this.handleSortEnd({oldIndex, newIndex, field: 'fields'})}
                     />
                 )}
 
-                {getFieldDecorator('queryItems', {getValueFromEvent: e => e, valuePropName: 'dataSource'})(
-                    <TableEditable
-                        size="small"
-                        formRef={form => this.queryItemsTableForm = form}
-                        hasError={getFieldError('queryItems')}
-                        title={() => <span>查询条件：<this.ClearTable field="queryItems"/></span>}
-                        columns={this.queryItemsColumns}
-                        newRecord={{id: uuid(), field: '', label: '', type: 'input'}}
-                        onRowMoved={dataSource => this.props.form.setFieldsValue({queryItems: dataSource})}
-                    />
-                )}
-
-                {getFieldDecorator('toolItems', {getValueFromEvent: e => e, valuePropName: 'dataSource'})(
-                    <TableEditable
-                        size="small"
-                        formRef={form => this.toolItemsTableForm = form}
-                        hasError={getFieldError('toolItems')}
-                        title={() => <span>顶部工具条：<this.ClearTable field="toolItems"/></span>}
-                        columns={this.toolItemsColumns}
-                        newRecord={{id: uuid(), type: '', text: '', icon: void 0}}
-                        onRowMoved={dataSource => this.props.form.setFieldsValue({toolItems: dataSource})}
-                    />
-                )}
-
-                {getFieldDecorator('bottomToolItems', {getValueFromEvent: e => e, valuePropName: 'dataSource'})(
-                    <TableEditable
-                        size="small"
-                        formRef={form => this.bottomToolItemsTableForm = form}
-                        hasError={getFieldError('bottomToolItems')}
-                        title={() => <span>底部工具条：<this.ClearTable field="bottomToolItems"/></span>}
-                        columns={this.bottomToolItemsColumns}
-                        newRecord={{id: uuid(), type: '', text: '', icon: void 0}}
-                        onRowMoved={dataSource => this.props.form.setFieldsValue({bottomToolItems: dataSource})}
-                    />
-                )}
+                <Tabs>
+                    <Tabs.TabPane forceRender tab={<span>查询条件<this.ClearTable field="queryItems" type="link"/></span>} key="queryItems">
+                        {getFieldDecorator('queryItems', {getValueFromEvent: (dataSource, nextDataSource) => nextDataSource || dataSource, valuePropName: 'dataSource'})(
+                            <Table
+                                size="small"
+                                formRef={form => this.queryItemsTableForm = form}
+                                columns={this.queryItemsColumns}
+                                helperClass="generator-helper-element"
+                                onSortEnd={({oldIndex, newIndex}) => this.handleSortEnd({oldIndex, newIndex, field: 'queryItems'})}
+                                newRecord={{type: 'input'}}
+                            />
+                        )}
+                    </Tabs.TabPane>
+                    <Tabs.TabPane forceRender tab={<span>顶部工具条<this.ClearTable field="toolItems" type="link"/></span>} key="toolItems">
+                        {getFieldDecorator('toolItems', {getValueFromEvent: (dataSource, nextDataSource) => nextDataSource || dataSource, valuePropName: 'dataSource'})(
+                            <Table
+                                size="small"
+                                formRef={form => this.toolItemsTableForm = form}
+                                columns={this.toolItemsColumns}
+                                helperClass="generator-helper-element"
+                                onSortEnd={({oldIndex, newIndex}) => this.handleSortEnd({oldIndex, newIndex, field: 'toolItems'})}
+                                newRecord={{type: 'primary'}}
+                            />
+                        )}
+                    </Tabs.TabPane>
+                    <Tabs.TabPane forceRender tab={<span>底部工具条<this.ClearTable field="bottomToolItems" type="link"/></span>} key="bottomToolItems">
+                        {getFieldDecorator('bottomToolItems', {getValueFromEvent: (dataSource, nextDataSource) => nextDataSource || dataSource, valuePropName: 'dataSource'})(
+                            <Table
+                                size="small"
+                                formRef={form => this.bottomToolItemsTableForm = form}
+                                columns={this.bottomToolItemsColumns}
+                                helperClass="generator-helper-element"
+                                onSortEnd={({oldIndex, newIndex}) => this.handleSortEnd({oldIndex, newIndex, field: 'bottomToolItems'})}
+                                newRecord={{type: 'primary'}}
+                            />
+                        )}
+                    </Tabs.TabPane>
+                </Tabs>
             </Form>
         );
     }

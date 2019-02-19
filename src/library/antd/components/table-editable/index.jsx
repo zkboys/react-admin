@@ -7,6 +7,7 @@ import FormElement from '../form-element';
 import classnames from 'classnames';
 import './index.less';
 
+
 @Form.create()
 export default class FieldsTable extends Component {
     static propTypes = {
@@ -29,6 +30,27 @@ export default class FieldsTable extends Component {
     };
 
     state = {};
+
+    static getValues(values) {
+        const tempValues = {};
+
+        Object.keys(values).forEach(key => {
+            const value = values[key];
+            const realKey = key.split('-')[0];
+            const index = key.indexOf('-');
+            if (index > -1) {
+                const id = key.substring(index);
+                if (tempValues[id]) {
+                    tempValues[id][realKey] = value;
+                } else {
+                    tempValues[id] = {[realKey]: value};
+                }
+            }
+        });
+        const realValues = Object.keys(tempValues).map(key => tempValues[key]);
+
+        return realValues?.length ? realValues : values;
+    };
 
     componentWillMount() {
         const {formRef, form} = this.props;
@@ -54,7 +76,6 @@ export default class FieldsTable extends Component {
         props.colon = false;
         props.label = props.label === void 0 ? ' ' : props.label;
         props.labelWidth = props.labelWidth === void 0 ? 20 : props.labelWidth;
-
         if (!record.__form_fields) record.__form_fields = new Set();
         record.__form_fields.add(props.field);
 
@@ -95,11 +116,11 @@ export default class FieldsTable extends Component {
                     // console.log(values);
                     // record 原始未编辑过得数据
                     // console.log(record);
-                    const newRecord = {...record, ...values, showEdit: false};
+                    const savedRecord = {...record, ...values, showEdit: false};
                     const dataSource = [...this.props.dataSource];
-                    const index = dataSource.findIndex(item => item.id === newRecord.id);
+                    const index = dataSource.findIndex(item => item.id === savedRecord.id);
 
-                    dataSource.splice(index, 1, newRecord);
+                    dataSource.splice(index, 1, savedRecord);
 
                     onChange(dataSource);
                 });
@@ -117,26 +138,43 @@ export default class FieldsTable extends Component {
 
         const decorator = {};
 
+        // 会卡
+        decorator.onChange = (e) => {
+            const {getValue = (e) => e.target ? e.target.value : e} = props;
+            const val = getValue(e);
+
+            const nextDataSource = this.props.dataSource.map(item => ({...item}));
+
+            const currentRecord = nextDataSource.find(item => item[rowKey] === record[rowKey]);
+
+            currentRecord[dataIndex] = val;
+
+            if (!currentRecord.__changed) currentRecord.__changed = new Set();
+            currentRecord.__changed.add(dataIndex);
+            onChange(this.props.dataSource, nextDataSource);
+        };
+
         decorator.initialValue = record[dataIndex];
 
         return <FormElement form={form} {...props} decorator={{...props.decorator, ...decorator}}/>
     };
 
     handleAddNewRow = () => {
-        const {dataSource, onChange, columns, rowKey} = this.props;
-        const newRecord = {__add: true};
+        const {dataSource, onChange, columns, rowKey, newRecord} = this.props;
+        let record = {__add: true};
 
         if (columns && columns.length) {
             columns.forEach(({dataIndex}) => {
                 if (dataIndex) {
-                    newRecord[dataIndex] = void 0;
+                    record[dataIndex] = void 0;
                 }
             })
         }
-        newRecord[rowKey] = uuid();
+        record[rowKey] = uuid();
 
-        onChange([...dataSource, {...newRecord}]);
+        onChange([...dataSource, {...record, ...newRecord}]);
     };
+
 
     render() {
         let {

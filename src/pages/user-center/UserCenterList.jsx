@@ -1,24 +1,21 @@
 import React, {Component} from 'react';
-import {Table} from 'antd';<%if(bottomToolItems && bottomToolItems.length){%>
-import FixBottom from '@/layouts/fix-bottom';<%}%>
-import {<%if(queryItems && queryItems.length){%>
+import {Table} from 'antd';
+import {
     QueryBar,
-    QueryItem,<%}%><%if(bottomToolItems && bottomToolItems.length){%>
-    ToolItem,<%}%>
+    QueryItem,
     Pagination,
-    Operator,<%if(toolItems && toolItems.length){%>
-    ToolBar,<%}%>
+    Operator,
+    ToolBar,
 } from "@/library/antd";
 import PageContent from '@/layouts/page-content';
-import config from '@/commons/config-hoc';<% if(permissionPrefix){%>
-import {hasPermission} from '@/commons';<%}%>
-import <%= capitalName %>Edit from './<%= capitalName %>Edit';
+import config from '@/commons/config-hoc';
+import UserCenterEdit from './UserCenterEdit';
 
 @config({
-    path: '<%= routePath %>',
+    path: '/user-center',
     ajax: true,
 })
-export default class <%= capitalName %>List extends Component {
+export default class UserCenterList extends Component {
     state = {
         loading: false,
         dataSource: [],
@@ -28,71 +25,69 @@ export default class <%= capitalName %>List extends Component {
         params: {},
         id: void 0,
         visible: false,
-    };<%if(queryItems && queryItems.length){%>
+    };
 
     // TODO 查询条件
     queryItems = [
-        [<% for (let i = 0;i<queryItems.length;i++){%>
+        [
             {
-                type: '<%= queryItems[i].type%>',
-                field: '<%= queryItems[i].field%>',
-                label: '<%= queryItems[i].label%>',
-            },<%}%>
+                type: 'input',
+                field: 'inMno',
+                label: '用户商编',
+            },
+            {
+                type: 'input',
+                field: 'userNo',
+                label: '用户号',
+            },
+            {
+                type: 'date-time',
+                field: 'updateTime',
+                label: '最后修改时间',
+            },
         ],
-    ];<%}%><%if(toolItems && toolItems.length){%>
+    ];
 
     // TODO 顶部工具条
-    toolItems = [<% for (let i = 0;i<toolItems.length;i++){%>
+    toolItems = [
         {
-            type: '<%= toolItems[i].type%>',
-            text: '<%= toolItems[i].text%>',
-            icon: '<%= toolItems[i].icon%>',<%if(permissionPrefix && toolItems[i].permission){%>
-            visible: hasPermission('<%= permissionPrefix %>_<%= toolItems[i].permission%>'),<%}%>
-            onClick: () => {
-                // TODO
-            },
-        },<%}%>
-    ];<%}%><%if(bottomToolItems && bottomToolItems.length){%>
+            type: 'primary',
+            text: '添加',
+            icon: 'plus',
+            onClick: () => this.handleAdd(),
+        },
+    ];
 
-    // TODO 底部工具条
-    bottomToolItems = [<% for (let i = 0;i<bottomToolItems.length;i++){%>
-        {
-            type: '<%= bottomToolItems[i].type%>',
-            text: '<%= bottomToolItems[i].text%>',
-            icon: '<%= bottomToolItems[i].icon%>',<%if(permissionPrefix && bottomToolItems[i].permission){%>
-            visible: hasPermission('<%= permissionPrefix %>_<%= bottomToolItems[i].permission%>'),<%}%>
-            onClick: () => {
-                // TODO
-            },
-        },<%}%>
-    ];<%}%>
-
-    columns = [<% for (let i = 0;i<fields.length;i++){%>
-        {title: '<%= fields[i].title%>', dataIndex: '<%= fields[i].dataIndex%>'},<%}%>
+    columns = [
+        {title: '客户号', dataIndex: 'customerNo'},
+        {title: '用户号', dataIndex: 'userNo'},
+        {title: '用户商编', dataIndex: 'inMno'},
+        {title: '产品编码', dataIndex: 'productCode'},
+        {title: '状态(00', dataIndex: 'state'},
+        {title: '创建时间', dataIndex: 'createTime'},
+        {title: '最后修改时间', dataIndex: 'updateTime'},
         {
             title: '操作',
             key: 'operator',
             render: (text, record) => {
-                const {id, <%= fields[0].dataIndex%>} = record;
-                const successTip = `删除“${<%= fields[0].dataIndex%>}”成功！`;
+                const {id, customerNo} = record;
+                const successTip = `删除“${customerNo}”成功！`;
                 const items = [
                     {
-                        label: '修改',<% if(permissionPrefix){%>
-                        visible: hasPermission('<%= permissionPrefix %>_UPDATE'),<%}%>
+                        label: '修改',
                         onClick: () => {
                             this.handleEdit(id);
                         },
                     },
                     {
                         label: '删除',
-                        color: 'red',<% if(permissionPrefix){%>
-                        visible: hasPermission('<%= permissionPrefix %>_DELETE'),<%}%>
+                        color: 'red',
                         confirm: {
-                            title: `您确定要删除“${<%= fields[0].dataIndex%>}”？`,
+                            title: `您确定要删除“${customerNo}”？`,
                             onConfirm: () => {
                                 this.setState({loading: true});
                                 this.props.ajax
-                                    .del(`<%= ajaxUrl %>/${id}`, null, {successTip})
+                                    .del(`/user-center/${id}`, null, {successTip})
                                     .then(() => this.handleSearch())
                                     .finally(() => this.setState({loading: false}));
                             },
@@ -114,7 +109,7 @@ export default class <%= capitalName %>List extends Component {
 
         this.setState({loading: true});
         this.props.ajax
-            .get('<%= ajaxUrl %>', {...params, pageNum, pageSize})
+            .get('/user-center', {...params, pageNum, pageSize})
             .then(res => {
                 if (res) {
                     const {list: dataSource, total} = res;
@@ -147,7 +142,7 @@ export default class <%= capitalName %>List extends Component {
         } = this.state;
 
         return (
-            <PageContent loading={loading}><%if(queryItems && queryItems.length){%>
+            <PageContent loading={loading}>
                 <QueryBar>
                     <QueryItem
                         loadOptions={this.fetchOptions}
@@ -155,9 +150,9 @@ export default class <%= capitalName %>List extends Component {
                         onSubmit={params => this.setState({params}, this.handleSearch)}
                     />
                 </QueryBar>
-                <%}%><%if(toolItems && toolItems.length){%>
+
                 <ToolBar items={this.toolItems}/>
-                    <%}%>
+
                 <Table
                     columns={this.columns}
                     dataSource={dataSource}
@@ -171,12 +166,9 @@ export default class <%= capitalName %>List extends Component {
                     pageSize={pageSize}
                     onPageNumChange={pageNum => this.setState({pageNum}, this.handleSearch)}
                     onPageSizeChange={pageSize => this.setState({pageSize, pageNum: 1}, this.handleSearch)}
-                /><%if(bottomToolItems && bottomToolItems.length){%>
-                <FixBottom>
-                    <ToolItem items={this.bottomToolItems}/>
-                </FixBottom><%}%>
+                />
 
-                <<%= capitalName %>Edit
+                <UserCenterEdit
                     id={id}
                     visible={visible}
                     onOk={() => this.setState({visible: false})}

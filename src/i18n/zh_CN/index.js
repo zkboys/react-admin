@@ -12,6 +12,7 @@ export default {
     },
     menu: {
         menus: '菜单&权限',
+        codeGenerator: '代码生成',
         home: '首页',
         document: '文档',
         page404: '404页面不存在',
@@ -29,6 +30,7 @@ export default {
         google: '谷歌官网',
 
         component: '组件',
+        tableRowDraggable: '表格行可拖拽',
         asyncSelect: '异步下拉',
         formElement: '表单元素',
         formItemLayout: '表单布局',
