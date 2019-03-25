@@ -5,7 +5,7 @@
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico"/>
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no"
     />
     <meta name="theme-color" content="#000000"/>
     <!--
@@ -46,11 +46,11 @@
         setInterval(() => {
             const root = document.getElementById('root');
 
-            if (root && !root.innerHTML) {
+            if (root && !root.innerHTML && !document.getElementsByTagName('iframe').length) {
                 window.location.reload();
                 clearInterval(si);
             }
-        }, 1000)
+        }, 10000)
     }
 </script>
 </body>
