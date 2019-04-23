@@ -14,6 +14,8 @@ showReset | 是否显示重置按钮 | bool | true
 resetText | 重置按钮文案 | ReactNode 或 string | '重置'
 collapsed | 是否收起 | bool | false
 items | 查询条件没一项配置 | object | -
+itemWidth | 统一设置item的宽度 | number | -
+itemLabelWidth | 统一设置item label的宽度 | number - 
 onSubmit | 提交时触发（回车或则点击查询按钮）| function(values) {} | -
 formRef | 获取内部form | function(form) {} | -
 loadOptions | 获取下拉、下拉树等数据，一个返回object 或 Promise，数据以field作为key对应 | (form) => Promise | -
@@ -25,6 +27,8 @@ buttonContainerStyle | 查询、重置按钮组样式 | object | -
 ---|---|---|---
 collapsedShow | 是否在收起时显示| bool | false
 itemStyle | 最外层容器样式 | object | -
+parentField| 关联的父级field，如果有关联，并且options是函数，父级改变将触发options函数重新获取下拉数据，用于级联 | string | -
+options | 数组或者函数 | array 或 (parentValue, form, parentChange) => {} | -
 其他 | FormElement所需参数，[点击这里](/example/form-element/README.md) | - | -
 
 
