@@ -11,17 +11,20 @@ react-admin是基于基于[React16.x](https://reactjs.org)、[Ant Design3.x](htt
 ├── public              // 不参与构建的静态文件
 ├── scripts             // 构建脚本
 ├── src                 
-│   ├── commons         // 通用js
-│   ├── components      // 通用组件
-│   ├── i18n            // 国际化
+│   ├── commons         // 通用js，业务相关
+│   ├── components      // 通用组件，业务相关
 │   ├── layouts         // 页面框架布局组件
-│   ├── library         // 基础组件
+│   ├── library         // 基础组件、工具
+│   │   ├── ajax        // ajax基础库
+│   │   ├── components  // 公共组件，业务无关
+│   │   ├── redux       // redux 封装
+│   │   └── utils       // 基础工具
 │   ├── mock            // 模拟数据
 │   ├── models          // 模块封装，基于redux，提供各组件共享数据、共享逻辑
 │   ├── pages           // 页面组件
 │   ├── router          // 路由
 │   ├── App.js          // 根组件
-│   ├── index.css       // 全局样式
+│   ├── index.css       // 全局样式 慎用
 │   ├── index.js        // 项目入口
 │   ├── menus.js        // 菜单配置
 │   ├── setupProxy.js   // 后端联调代理配置
@@ -29,5 +32,4 @@ react-admin是基于基于[React16.x](https://reactjs.org)、[Ant Design3.x](htt
 ├── package.json
 ├── README.md
 └── yarn.lock
-
 ```
