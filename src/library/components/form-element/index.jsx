@@ -128,9 +128,14 @@ class FormElement extends Component {
         tip: PropTypes.any,
         field: PropTypes.string,
         decorator: PropTypes.object,
-        style: PropTypes.object,
-        elementStyle: PropTypes.object,
+        style: PropTypes.object, // 最外层元素样式
+        elementStyle: PropTypes.object, // 表单元素样式
         layout: PropTypes.bool,
+        noSpace: PropTypes.bool, // 是否允许用户输入空格
+        trim: PropTypes.bool, // 自动去除前后空格
+        // 校验相关
+        maxLength: PropTypes.number, // 允许输入最大字符数
+        minLength: PropTypes.number, // 允许输入最小字符数
 
         // Form.Item属性
         colon: PropTypes.any,
@@ -153,6 +158,14 @@ class FormElement extends Component {
         validateFirst: PropTypes.any,
         validateTrigger: PropTypes.any,
         valuePropName: PropTypes.any,
+
+        // 其他
+        className: PropTypes.any,
+        onChange: PropTypes.any,
+        onClick: PropTypes.any,
+        onBlur: PropTypes.any,
+        autoFocus: PropTypes.any,
+        htmlType: PropTypes.any,
     };
 
     static defaultProps = {
@@ -160,6 +173,15 @@ class FormElement extends Component {
         style: {},
         elementStyle: {},
         layout: false,
+        noSpace: false,
+        trim: true,
+        getValueFromEvent: e => {
+            if (!e || !e.target) {
+                return e;
+            }
+            const {target} = e;
+            return target.type === 'checkbox' ? target.checked : target.value;
+        },
     };
 
     componentDidMount() {
@@ -179,7 +201,10 @@ class FormElement extends Component {
     }
 
     setStyle = () => {
-        let {labelWidth, label, labelBlock} = this.props;
+        let {labelWidth, label, labelBlock, layout} = this.props;
+
+        if (layout && !label) label = ' ';
+
         const labelDom = this.container.querySelector('.ant-form-item-label');
 
         if (!label) labelWidth = 0;
@@ -205,11 +230,40 @@ class FormElement extends Component {
         }
     };
 
+    // 获取校验信息
+    getRules = (decorator, placeholder) => {
+        const decoratorRues = decorator.rules || [];
+        const {
+            required,
+            maxLength,
+            minLength,
+        } = this.props;
+
+        const rules = [];
+
+        // 如果存在required属性，自动添加必填校验
+        if (required && !decoratorRues.find(item => 'required' in item)) {
+            rules.push({required: true, message: `${placeholder}!`});
+        }
+
+        if (maxLength !== void 0 && !decoratorRues.find(item => 'max' in item)) {
+            rules.push({max: maxLength, message: `最大长度不能超过 ${maxLength} 个字符！`});
+        }
+
+        if (minLength !== void 0 && !decoratorRues.find(item => 'min' in item)) {
+            rules.push({min: minLength, message: `最小长度不能低于 ${minLength} 个字符！`});
+        }
+
+        return rules;
+    };
+
+    trimST = 0;
+
     render() {
         let {
             // 自定义属性
             form,
-            type,
+            type = 'input',
             labelWidth,
             width, // 整体宽度，默认 100%
             labelTip,
@@ -220,6 +274,11 @@ class FormElement extends Component {
             elementStyle,
             layout,
             forwardedRef,
+            noSpace,
+            trim,
+            // 校验相关
+            maxLength,
+            minLength,
 
             // Form.Item属性
             colon,
@@ -252,12 +311,47 @@ class FormElement extends Component {
 
         if (layout) {
             form = null;
+            label = ' ';
+            colon = false;
         }
 
         const {getFieldDecorator} = form || {};
 
+        const getValueFromEventNoSpace = noSpace ? (e) => {
+            if (isInputLikeElement(type)) {
+                let value = (!e || !e.target) ? e : e.target.value;
+
+                if (value && typeof value === 'string') return value.replace(/\s/g, '');
+
+                return value;
+            } else {
+                return getValueFromEvent(e);
+            }
+        } : getValueFromEvent;
+
+        const getValueFromEventTrim = trim ? (e) => {
+            if (this.trimST) clearTimeout(this.trimST);
+
+            const value = (!e || !e.target) ? e : e.target.value;
+
+            if (
+                form
+                && isInputLikeElement(type)
+                && value
+                && typeof value === 'string'
+                && (value.startsWith(' ') || value.endsWith(' '))
+            ) {
+                // 延迟去除，否则用户无法输入空格
+                this.trimST = window.setTimeout(() => {
+                    form.setFieldsValue({[field]: value.trim()});
+                }, 1000);
+            }
+
+            return getValueFromEventNoSpace(e);
+        } : getValueFromEventNoSpace;
+
         const nextDecorator = {
-            getValueFromEvent,
+            getValueFromEvent: getValueFromEventTrim,
             initialValue,
             normalize,
             preserve,
@@ -313,12 +407,7 @@ class FormElement extends Component {
             }
         }
 
-        if (!nextDecorator.rules) nextDecorator.rules = [];
-
-        // 如果存在required属性，自动添加必填校验
-        if (required && !nextDecorator.rules.find(item => 'required' in item)) {
-            nextDecorator.rules.push({required: true, message: `${others.placeholder}!`});
-        }
+        nextDecorator.rules = this.getRules(nextDecorator, others.placeholder);
 
         let formLabel = label;
         if (labelTip) {
@@ -336,7 +425,7 @@ class FormElement extends Component {
         }
 
         const elementProps = {
-            ...others, ref: forwardedRef, style: eleStyle
+            ...others, ref: forwardedRef, style: eleStyle,
         };
 
         if (form) {
