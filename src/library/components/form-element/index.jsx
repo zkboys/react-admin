@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import {Form} from 'antd';
+import {QuestionCircleOutlined} from '@ant-design/icons';
 import {
-    Form,
     InputNumber,
     Input,
     Select,
@@ -12,18 +13,16 @@ import {
     DatePicker,
     TimePicker,
     Cascader,
-    Icon,
     Tooltip,
     Transfer,
 } from 'antd';
-import JsonEditor from '../json-editor';
 import IconPicker from '../icon-picker';
 import './index.less';
 
 const {TextArea, Password} = Input;
 const FormItem = Form.Item;
 
-// input hidden number textarea password mobile email select select-tree checkbox checkbox-group radio radio-group switch date time date-time date-range cascader
+// input hidden number textarea password mobile email select select-tree checkbox checkbox-group radio radio-button radio-group switch date time date-time date-range cascader
 
 /**
  * 类似 input 元素
@@ -39,7 +38,6 @@ export function isInputLikeElement(type) {
         'password',
         'mobile',
         'email',
-        'json',
     ].includes(type);
 }
 
@@ -63,7 +61,6 @@ function getElement(item) {
         if (type === 'number') return <InputNumber {...commonProps} {...props}/>;
         if (type === 'textarea') return <TextArea {...commonProps} {...props}/>;
         if (type === 'password') return <Password {...commonProps} {...props}/>;
-        if (type === 'json') return <JsonEditor {...commonProps} {...props}/>;
 
         return <Input {...commonProps} type={type} {...props}/>;
     }
@@ -123,41 +120,42 @@ class FormElement extends Component {
         form: PropTypes.object,
         type: PropTypes.string.isRequired,
         labelWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+        showLabel: PropTypes.bool,
         width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
         labelTip: PropTypes.any,
         tip: PropTypes.any,
-        field: PropTypes.string,
         decorator: PropTypes.object,
         style: PropTypes.object, // 最外层元素样式
         elementStyle: PropTypes.object, // 表单元素样式
         layout: PropTypes.bool,
         noSpace: PropTypes.bool, // 是否允许用户输入空格
-        trim: PropTypes.bool, // 自动去除前后空格
         // 校验相关
         maxLength: PropTypes.number, // 允许输入最大字符数
         minLength: PropTypes.number, // 允许输入最小字符数
 
         // Form.Item属性
         colon: PropTypes.any,
+        dependencies: PropTypes.any,
         extra: PropTypes.any,
+        getValueFromEvent: PropTypes.any,
         hasFeedback: PropTypes.any,
         help: PropTypes.any,
+        htmlFor: PropTypes.any,
+        noStyle: PropTypes.any,
         label: PropTypes.any,
+        labelAlign: PropTypes.any,
         labelCol: PropTypes.any,
-        required: PropTypes.any,
-        validateStatus: PropTypes.any,
-        wrapperCol: PropTypes.any,
-
-        // decorator属性 展开方便使用
-        getValueFromEvent: PropTypes.any,
-        initialValue: PropTypes.any,
+        name: PropTypes.any,
         normalize: PropTypes.any,
-        preserve: PropTypes.any,
+        required: PropTypes.any,
         rules: PropTypes.any,
+        shouldUpdate: PropTypes.any,
         trigger: PropTypes.any,
         validateFirst: PropTypes.any,
+        validateStatus: PropTypes.any,
         validateTrigger: PropTypes.any,
         valuePropName: PropTypes.any,
+        wrapperCol: PropTypes.any,
 
         // 其他
         className: PropTypes.any,
@@ -175,6 +173,7 @@ class FormElement extends Component {
         layout: false,
         noSpace: false,
         trim: true,
+        showLabel: true,
         getValueFromEvent: e => {
             if (!e || !e.target) {
                 return e;
@@ -184,91 +183,39 @@ class FormElement extends Component {
         },
     };
 
-    componentDidMount() {
-        this.setStyle();
-        const {layout, field, form} = this.props;
-        if (!layout && !form) {
-            console.error('warning: FormElement 缺少form属性');
-        }
-
-        if (!layout && !field) {
-            console.error('warning: FormElement 缺少Field属性');
-        }
-    }
-
-    componentDidUpdate() {
-        this.setStyle();
-    }
-
-    setStyle = () => {
-        let {labelWidth, label, labelBlock, layout} = this.props;
-
-        if (layout && !label) label = ' ';
-
-        const labelDom = this.container.querySelector('.ant-form-item-label');
-
-        if (!label) labelWidth = 0;
-
-        if (labelDom) {
-            if (labelWidth !== void 0) {
-                const width = typeof labelWidth === 'string' ? labelWidth : `${labelWidth}px`;
-
-                if (labelBlock) {
-                    labelDom.style.width = width;
-                } else {
-                    labelDom.style.flexBasis = width;
-                }
-            } else {
-                labelDom.style.paddingLeft = '0';
-            }
-        }
-
-        // label自己独占一行
-        if (labelBlock) {
-            const formItemDom = this.container.querySelector('.ant-form-item');
-            formItemDom.style.flexDirection = 'column';
-        }
-    };
-
     // 获取校验信息
-    getRules = (decorator, placeholder) => {
-        const decoratorRues = decorator.rules || [];
+    getRules = (rules = [], requireMessage) => {
         const {
             required,
             maxLength,
             minLength,
         } = this.props;
 
-        const rules = [];
-
         // 如果存在required属性，自动添加必填校验
-        if (required && !decoratorRues.find(item => 'required' in item)) {
-            rules.push({required: true, message: `${placeholder}!`});
+        if (required && !rules.find(item => 'required' in item)) {
+            rules.push({required: true, message: `${requireMessage}!`});
         }
 
-        if (maxLength !== void 0 && !decoratorRues.find(item => 'max' in item)) {
+        if (maxLength !== void 0 && !rules.find(item => 'max' in item)) {
             rules.push({max: maxLength, message: `最大长度不能超过 ${maxLength} 个字符！`});
         }
 
-        if (minLength !== void 0 && !decoratorRues.find(item => 'min' in item)) {
+        if (minLength !== void 0 && !rules.find(item => 'min' in item)) {
             rules.push({min: minLength, message: `最小长度不能低于 ${minLength} 个字符！`});
         }
 
         return rules;
     };
 
-    trimST = 0;
-
     render() {
         let {
             // 自定义属性
-            form,
             type = 'input',
             labelWidth,
+            showLabel,
             width, // 整体宽度，默认 100%
             labelTip,
             tip,
-            field,
             decorator,
             style,
             elementStyle,
@@ -282,104 +229,50 @@ class FormElement extends Component {
 
             // Form.Item属性
             colon,
+            dependencies,
             extra,
+            getValueFromEvent,
             hasFeedback,
             help,
+            htmlFor,
+            noStyle,
             label,
+            labelAlign,
             labelCol,
-            required,
-            validateStatus,
-            wrapperCol,
-
-            // decorator属性 展开方便使用
-            getValueFromEvent,
-            initialValue,
+            name,
             normalize,
-            preserve,
+            required,
             rules,
+            shouldUpdate,
             trigger,
             validateFirst,
+            validateStatus,
             validateTrigger,
             valuePropName,
-            onChange,
+            wrapperCol,
 
             children,
 
-            // 其他的会直接作为Form Element属性
+            // 其他的会直接作为Form 表单元素属性
             ...others
         } = this.props;
 
-        if (layout) {
-            form = null;
-            label = ' ';
-            colon = false;
-        }
 
-        const {getFieldDecorator} = form || {};
-
-        const getValueFromEventNoSpace = noSpace ? (e) => {
-            if (isInputLikeElement(type)) {
-                let value = (!e || !e.target) ? e : e.target.value;
-
-                if (value && typeof value === 'string') return value.replace(/\s/g, '');
-
-                return value;
-            } else {
-                return getValueFromEvent(e);
-            }
-        } : getValueFromEvent;
-
-        const getValueFromEventTrim = trim ? (e) => {
-            if (this.trimST) clearTimeout(this.trimST);
-
-            const value = (!e || !e.target) ? e : e.target.value;
-
-            if (
-                form
-                && isInputLikeElement(type)
-                && value
-                && typeof value === 'string'
-                && (value.startsWith(' ') || value.endsWith(' '))
-            ) {
-                // 延迟去除，否则用户无法输入空格
-                this.trimST = window.setTimeout(() => {
-                    form.setFieldsValue({[field]: value.trim()});
-                }, 1000);
-            }
-
-            return getValueFromEventNoSpace(e);
-        } : getValueFromEventNoSpace;
-
-        const nextDecorator = {
-            getValueFromEvent: getValueFromEventTrim,
-            initialValue,
-            normalize,
-            preserve,
-            rules,
-            trigger,
-            validateFirst,
-            validateTrigger,
-            valuePropName,
-            onChange,
-
-            ...decorator,
-        };
-
-        if (type === 'switch') {
-            nextDecorator.valuePropName = 'checked';
+        if (type === 'switch' || type === 'checkbox') {
+            valuePropName = 'checked';
         }
 
         if (type === 'transfer') {
-            nextDecorator.valuePropName = 'targetKeys';
+            valuePropName = 'targetKeys';
         }
 
-        // 删除undefined属性，否则会引发错误
-        Object.keys(nextDecorator).forEach(key => {
-            const value = nextDecorator[key];
-            if (value === void 0) {
-                Reflect.deleteProperty(nextDecorator, key);
-            }
-        });
+        if (!labelCol && labelWidth !== undefined) {
+            labelCol = {flex: `0 0 ${labelWidth}px`};
+        }
+
+        if (type === 'select' && ('showSearch' in others) && !('optionFilterProp' in others)) {
+            others.optionFilterProp = 'children';
+        }
 
         // 处理整体样式
         const wrapperStyle = {};
@@ -397,7 +290,7 @@ class FormElement extends Component {
         eleStyle = {...eleStyle, ...elementStyle};
 
         // 处理placeholder
-        if (others.placeholder === void 0) {
+        if (!('placeholder' in others)) {
             if (isInputLikeElement(type)) {
                 others.placeholder = `请输入${label}`;
             } else if (type === 'date-range') {
@@ -407,7 +300,15 @@ class FormElement extends Component {
             }
         }
 
-        nextDecorator.rules = this.getRules(nextDecorator, others.placeholder);
+        if (!('allowClear' in others) && isInputLikeElement(type)) {
+            others.allowClear = true;
+        }
+
+        rules = this.getRules(rules, isInputLikeElement(type) ? `请输入${label}` : `请选择${label}`);
+
+        if (rules.find(item => ('required' in item) && item.required)) {
+            required = true;
+        }
 
         let formLabel = label;
         if (labelTip) {
@@ -417,21 +318,42 @@ class FormElement extends Component {
                         placement="bottom"
                         title={labelTip}
                     >
-                        <Icon type="question-circle-o" style={{marginRight: '4px'}}/>
+                        <QuestionCircleOutlined style={{marginRight: '4px'}}/>
                     </Tooltip>
                     {label}
                 </span>
             );
         }
 
+        const getValueFromEventNoSpace = noSpace ? (e) => {
+            if (isInputLikeElement(type)) {
+                let value = (!e || !e.target) ? e : e.target.value;
+
+                if (value && typeof value === 'string') return value.replace(/\s/g, '');
+
+                return value;
+            } else {
+                return getValueFromEvent(e);
+            }
+        } : getValueFromEvent;
+
         const elementProps = {
             ...others, ref: forwardedRef, style: eleStyle,
         };
 
-        if (form) {
-            children = children ? React.cloneElement(children, elementProps) : null;
-            children = getFieldDecorator(field, nextDecorator)(children || getElement({type, ...elementProps}));
+        if (layout) {
+            formLabel = formLabel || '';
+            colon = false;
+        } else {
+            if (children && !shouldUpdate) {
+                children = children ? React.cloneElement(children, elementProps) : null;
+            } else {
+                children = getElement({type, ...elementProps});
+            }
         }
+
+        // 不处理不显示红色星号
+        if ((!formLabel && required) || !showLabel) formLabel = ' ';
 
         return (
             <div
@@ -441,13 +363,26 @@ class FormElement extends Component {
             >
                 <FormItem
                     colon={colon}
+                    dependencies={dependencies}
                     extra={extra}
+                    getValueFromEvent={getValueFromEventNoSpace}
                     hasFeedback={hasFeedback}
                     help={help}
+                    htmlFor={htmlFor}
+                    noStyle={noStyle}
                     label={formLabel}
+                    labelAlign={labelAlign}
                     labelCol={labelCol}
+                    name={name}
+                    normalize={normalize}
                     required={required}
+                    rules={rules}
+                    shouldUpdate={shouldUpdate}
+                    trigger={trigger}
+                    validateFirst={validateFirst}
                     validateStatus={validateStatus}
+                    validateTrigger={validateTrigger}
+                    valuePropName={valuePropName}
                     wrapperCol={wrapperCol}
                 >
                     {children}

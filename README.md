@@ -9,10 +9,8 @@
 ## 项目预览
 预览地址[在这里](https://open.vbill.cn/react-admin-live/)
 
-注：由于是存静态发布，所有涉及到ajax请求的功能都会报404错误，属于正常现象。
-
 ## 项目截图
-这里只提供了部分页面截图，根据文档[快速开始](https://open.vbill.cn/react-admin/START.html)进行项目的搭建，浏览项目丰富功能！
+这里只提供了部分页面截图，根据文档[快速开始](https://open.vbill.cn/react-admin/#/START)进行项目的搭建，浏览项目丰富功能！
 
 <table>
     <tr>
@@ -22,6 +20,10 @@
     <tr>
         <td><img src="docs/imgs/users.jpg" alt="用户"/></td>
         <td><img src="docs/imgs/menu.jpg" alt="菜单&权限"/></td>
+    </tr>
+    <tr>
+        <td><img src="docs/imgs/gen_quick.png" alt="快速生成"/></td>
+        <td><img src="docs/imgs/gen_single.png" alt="单独生成"/></td>
     </tr>
     <tr>
         <td><img src="docs/imgs/401.jpg" alt="未登录"/></td>

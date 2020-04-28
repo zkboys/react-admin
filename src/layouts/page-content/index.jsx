@@ -1,9 +1,9 @@
 import React, {Component} from 'react';
 import {Spin} from 'antd';
 import PropTypes from 'prop-types';
-import './style.less';
 import Footer from '../footer';
-import {connect} from '../../models/index';
+import {connect} from 'src/models/index';
+import './style.less';
 
 /**
  * 页面内容 容器
@@ -11,7 +11,11 @@ import {connect} from '../../models/index';
  * 1. 自动判断是否含有FixBottom，并为之腾出空间
  * 1. 是否含有公共footer
  */
-@connect(state => ({pageLoading: state.page.loading, pageLoadingTip: state.page.loadingTip}))
+@connect(state => ({
+    pageLoading: state.page.loading,
+    pageLoadingTip: state.page.loadingTip,
+    sideWidth: state.side.width,
+}))
 export default class PageContent extends Component {
     static propTypes = {
         loading: PropTypes.bool,
@@ -38,6 +42,7 @@ export default class PageContent extends Component {
             children,
             action,
             className,
+            sideWidth,
             ...others
         } = this.props;
 
@@ -53,15 +58,23 @@ export default class PageContent extends Component {
 
         const isLoading = loading || pageLoading;
         const tip = loadingTip || pageLoadingTip;
+        const top = this.root?.offsetTop || 0;
 
         return (
-            <div style={rootStyle} styleName="page-content-root">
-                <div styleName="page-loading" style={{display: isLoading ? 'block' : 'none'}}>
-                    <Spin spinning size="large" tip={tip}/>
+            <div ref={node => this.root = node} style={rootStyle} styleName="page-content-root">
+                <div
+                    styleName="page-loading"
+                    style={{
+                        display: isLoading ? 'block' : 'none',
+                        left: sideWidth,
+                        top,
+                    }}
+                >
+                    <Spin spinning tip={tip}/>
                 </div>
                 <div
-                    styleName="page-content"
                     className={`${className} page-content`}
+                    styleName="page-content"
                     {...others}
                 >
                     {children}

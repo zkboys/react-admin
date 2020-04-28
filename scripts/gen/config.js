@@ -1,9 +1,13 @@
 const path = require('path');
-const http = require('http');
-const axios = require('axios');
-const https = require('https');
 const urlParse = require('url').parse;
-const {getTitle, getTableColumns, logWarning, logSuccess} = require('./util');
+const {
+    getTableColumns,
+    logWarning,
+    logSuccess,
+    COMMON_EXCLUDE_FIELDS,
+    getFormElementType,
+    readSwagger,
+} = require('./util');
 
 // 命令要在项目根目录下执行
 const PAGES_DIR = path.join(process.cwd(), '/src/pages');
@@ -26,23 +30,16 @@ const ELEMENT_TYPES = [
     'checkbox-group',
     'radio',
     'radio-group',
+    'radio-button',
     'switch',
     'date',
     'time',
+    'month',
     'date-time',
     'date-range',
     'cascader',
-    'json',
+    'transfer',
     'icon-picker',
-];
-
-// 接口，数据库读取是，忽略的字段
-const COMMON_EXCLUDE_FIELDS = [
-    'SXF-TRACE-ID',
-    'pageNum',
-    'pageSize',
-    'id',
-    'token',
 ];
 
 // 随机生成不重复field字符串
@@ -101,27 +98,7 @@ function getFormElement(str) {
         field,
         required,
         maxLength,
-    }
-}
-
-// 获取表单label类型
-function getFormElementType({oType, label = ''}) {
-    let type = 'input';
-
-    // FIXME 完善更多类型
-    if (oType === 'array') type = 'select';
-
-    if (label.startsWith('是否')) type = 'switch';
-
-    if (label.startsWith('密码') || label.endsWith('密码')) type = 'password';
-
-    if (label.includes('电话') || label.includes('手机')) type = 'mobile';
-
-    if (label.includes('邮箱')) type = 'email';
-
-    if (label.includes('时间') || label.includes('日期')) type = 'date';
-
-    return type;
+    };
 }
 
 function getElement(configArr, title, key, fromColumn) {
@@ -167,7 +144,7 @@ function getBlockConfig(configArr, title) {
                 // 都是被注释掉的行
                 && !item.startsWith('//')
                 && !item.startsWith('#')
-                && !item.startsWith(';')
+                && !item.startsWith(';');
         })
         .map(item => {
             // 将一行文本进行空格拆分 并去掉空元素
@@ -178,7 +155,7 @@ function getBlockConfig(configArr, title) {
             if (index !== -1) lineArr.splice(index);
 
             return lineArr;
-        })
+        });
 }
 
 function getHandle(configArr, title, defaultProps) {
@@ -205,10 +182,10 @@ function getHandle(configArr, title, defaultProps) {
             text,
             handle,
             icon,
-        })
+        });
     });
 
-    return result
+    return result;
 }
 
 // 接口配置
@@ -314,7 +291,7 @@ function getBaseConfig(configArr) {
                         method,
                         url,
                         dataPath,
-                    }
+                    };
                 }
             }
 
@@ -380,7 +357,7 @@ function getPagesConfig(configArr, moduleName = '') {
                 typeName,
                 filePath: path.join(PAGES_DIR, moduleName, fileName),
                 template: path.join(__dirname, 'templates', templateFileName),
-            })
+            });
         } else {
             const [templateFilePath, fileName] = templateAndFilePath.split('->');
             if (!result) result = [];
@@ -389,11 +366,11 @@ function getPagesConfig(configArr, moduleName = '') {
                 filePath: path.join(PAGES_DIR, moduleName, fileName),
                 // 用户模版要基于项目根目录编写
                 template: path.join(process.cwd(), templateFilePath),
-            })
+            });
         }
     });
 
-    return result
+    return result;
 }
 
 // 获取查询条件配置
@@ -435,7 +412,7 @@ function getTableConfig(configArr) {
         }
     });
 
-    return result
+    return result;
 }
 
 // 获取表格列配置
@@ -489,146 +466,6 @@ function getFormConfig(configArr, fromColumn) {
     return getElement(configArr, '表单元素配置', 'f', fromColumn);
 }
 
-// 获取swagger文档中的数据对象，不同的swagger可能有所不同
-function getProperties(schema, definitions) {
-    const getDefKey = (ref) => {
-        const refs = ref.split('/');
-
-        return refs[refs.length - 1];
-    };
-
-    const ref = schema.$ref || schema.items.$ref;
-    const defKey = getDefKey(ref);
-    const {properties} = definitions[defKey];
-
-    if (!properties) return [];
-
-    const propertiesValue = Object.values(properties);
-    if (propertiesValue[0].items && propertiesValue[0].items.$ref) {
-        const defKey = getDefKey(propertiesValue[0].items.$ref);
-        const {properties} = definitions[defKey];
-        return properties;
-    }
-
-    return properties;
-}
-
-async function readSwagger(config, baseConfig) {
-    const {url, userName, password} = config;
-    const httpInstance = url.startsWith('https') ? https : http;
-    const auth = 'Basic ' + Buffer.from(userName + ':' + password).toString('base64');
-    const request = axios.create({
-        httpsAgent: new httpInstance.Agent({
-            rejectUnauthorized: false,
-        }),
-        headers: {
-            Authorization: auth,
-        },
-    });
-    const response = await request.get(url);
-
-    // swagger所能提供的信息 queries columns forms
-    const {
-        search, // 从search 中获取 quires columns
-        modify, // 从modify中获取 forms
-    } = baseConfig.ajax;
-    const apiDocs = response.data;
-    const {paths, definitions} = apiDocs;
-
-    let queries = null;
-    let columns = null;
-    let forms = null;
-
-    if (search) {
-        let {method, url, excludeFields = [], dataPath} = search;
-
-        // 获取查询条件
-        if (paths[url]) { // 接口有可能不存在
-            excludeFields = [...excludeFields, ...COMMON_EXCLUDE_FIELDS];
-            const {parameters} = paths[url][method];
-
-            parameters.forEach(item => {
-                const {name: field, required, description, in: inType, type: oType} = item;
-                const label = getTitle(description, field);
-                let type = getFormElementType({oType, label});
-
-                if (inType === 'query' && !excludeFields.includes(field)) {
-                    if (!queries) queries = [];
-                    queries.push({
-                        type,
-                        field,
-                        label,
-                        required,
-                    })
-                }
-            });
-
-            // 获取表头
-            let schema = paths[url][method]['responses']['200'].schema;
-
-            let properties = getProperties(schema, definitions);
-            if (dataPath) {
-                dataPath.split('.').forEach(key => {
-                    schema = properties[key];
-                    properties = getProperties(schema, definitions);
-                });
-            }
-
-            Object.entries(properties).forEach(([dataIndex, item]) => {
-                if (!excludeFields.includes(dataIndex)) {
-                    const {description} = item;
-                    const title = getTitle(description, dataIndex);
-
-                    if (!columns) columns = [];
-                    columns.push({
-                        title,
-                        dataIndex,
-                    });
-                }
-            });
-        }
-    }
-
-    if (modify) {
-        // 获取编辑表单信息
-        let {method, url, excludeFields = []} = modify;
-
-        if (paths[url]) { // 接口有可能不存在
-            excludeFields = [...excludeFields, ...COMMON_EXCLUDE_FIELDS];
-            const {parameters} = paths[url][method];
-
-            parameters.forEach(item => {
-                const {in: inType, schema} = item;
-
-                if (inType === 'body') {
-                    const properties = getProperties(schema, definitions);
-
-                    Object.entries(properties).forEach(([field, item]) => {
-                        if (!excludeFields.includes(field)) {
-                            const {description, type: oType} = item;
-                            const label = getTitle(description, field);
-
-                            let type = getFormElementType({oType, label});
-
-                            if (!forms) forms = [];
-                            forms.push({
-                                type,
-                                label,
-                                field,
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    }
-
-    return {
-        queries,
-        columns,
-        forms,
-    };
-}
 
 async function readDataBase(dataBaseConfig) {
     const {url, tableName: table, database} = dataBaseConfig;

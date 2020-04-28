@@ -1,6 +1,6 @@
 # 简介
 
-react-admin是基于基于[React16.x](https://reactjs.org)、[Ant Design3.x](https://ant.design/)的管理系统架构。
+react-admin是基于基于[React16.x](https://reactjs.org)、[Ant Design4.x](https://ant.design/)的管理系统架构。
 采用前后端分离，内置了许多管理系统常用功能，通过一些脚本、封装帮助开发人员快速开发管理系统，集中精力处理业务逻辑。
 
 ## 项目结构
@@ -33,3 +33,25 @@ react-admin是基于基于[React16.x](https://reactjs.org)、[Ant Design3.x](htt
 ├── README.md
 └── yarn.lock
 ```
+## 预览
+
+部分页面截图，完整项目预览地址[戳这里](https://open.vbill.cn/react-admin-live/)
+
+<table>
+    <tr>
+        <td><img src="imgs/login.jpg" alt="登录"/></td>
+        <td><img src="imgs/home.jpg" alt="首页"/></td>
+    </tr>
+    <tr>
+        <td><img src="imgs/users.jpg" alt="用户"/></td>
+        <td><img src="imgs/menu.jpg" alt="菜单&权限"/></td>
+    </tr>
+    <tr>
+        <td><img src="imgs/gen_quick.png" alt="快速生成"/></td>
+        <td><img src="imgs/gen_single.png" alt="单独生成"/></td>
+    </tr>
+    <tr>
+        <td><img src="imgs/401.jpg" alt="未登录"/></td>
+        <td><img src="imgs/404.png" alt="页面不存在"/></td>
+    </tr>
+</table>

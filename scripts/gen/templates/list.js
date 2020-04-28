@@ -1,6 +1,19 @@
 const DELETE_THIS_LINE = 'DELETE_THIS_LINE';
 const WITH_OPTIONS_TYPE = ['select', 'radio-group', 'checkbox-group'];
 
+function renderTime(item) {
+    const {title, dataIndex} = item;
+    const timeStr = `, render: value => value ? moment(value).format('YYYY-MM-DD HH:mm') : null`;
+    const dateStr = `, render: value => value ? moment(value).format('YYYY-MM-DD') : null`;
+
+    if (title && title.includes('日期')) return dateStr;
+    if (title && title.includes('时间')) return timeStr;
+    if (dataIndex && dataIndex.toLowerCase().endsWith('time')) return timeStr;
+    if (dataIndex && dataIndex.toLowerCase().endsWith('date')) return dateStr;
+
+    return '';
+}
+
 /**
  * 获取列表页字符串
  */
@@ -14,6 +27,8 @@ module.exports = function (config) {
         table,
         columns,
     } = config;
+
+    if (queries && !queries.length) queries = null;
 
     if (!table) table = {};
 
@@ -35,18 +50,19 @@ module.exports = function (config) {
     const operatorDelete = operators && operators.find(item => item.text === '删除');
 
     return `import React, {Component} from 'react';
-${tools || queries || hasBatchDelete ? `import {${queries ? 'Button, Form, ' : ''}${hasBatchDelete ? 'Modal' : ''}} from 'antd';` : DELETE_THIS_LINE}
-import PageContent from '@/layouts/page-content';
-import config from '@/commons/config-hoc';
+${tools || queries || hasBatchDelete ? `import {${(queries || tools) ? 'Button, ' : ''}${queries ? 'Form, ' : ''}${hasBatchDelete ? 'Modal' : ''}} from 'antd';` : DELETE_THIS_LINE}
+${columns.find(renderTime) ? `import moment from 'moment';` : DELETE_THIS_LINE}
+import PageContent from 'src/layouts/page-content';
+import config from 'src/commons/config-hoc';
 import {
     ${queries ? 'QueryBar,' : DELETE_THIS_LINE}
+    ${(!queries && tools) ? 'ToolBar,' : DELETE_THIS_LINE}
     ${queries ? 'FormRow,' : DELETE_THIS_LINE}
     ${queries ? 'FormElement,' : DELETE_THIS_LINE}
-    ${tools ? 'ToolBar,' : DELETE_THIS_LINE}
     Table,
     ${operators ? 'Operator,' : DELETE_THIS_LINE}
     ${table.pagination ? 'Pagination,' : DELETE_THIS_LINE}
-} from '@/library/components';
+} from 'src/library/components';
 ${isModalEdit ? 'import EditModal from \'./EditModal\';' : DELETE_THIS_LINE}
 
 @config({
@@ -54,7 +70,6 @@ ${isModalEdit ? 'import EditModal from \'./EditModal\';' : DELETE_THIS_LINE}
     ajax: true,
     ${isPageEdit ? 'router: true,' : DELETE_THIS_LINE}
 })
-${queries ? '@Form.create()' : DELETE_THIS_LINE}
 export default class UserCenter extends Component {
     state = {
         loading: false,     // 表格加载数据loading
@@ -62,21 +77,18 @@ export default class UserCenter extends Component {
         ${table.selectable ? 'selectedRowKeys: [],// 表格中选中行keys' : DELETE_THIS_LINE}
         ${table.pagination ? 'total: 0,           // 分页中条数' : DELETE_THIS_LINE}
         ${table.pagination ? 'pageNum: 1,         // 分页当前页' : DELETE_THIS_LINE}
-        ${table.pagination ? 'pageSize: 10,       // 分页每页显示条数' : DELETE_THIS_LINE}
-        ${hasDelete ? 'deleting: false,    // 批量删除中loading' : DELETE_THIS_LINE}
-        ${hasBatchDelete ? 'singleDeleting: {}, // 操作列删除loading' : DELETE_THIS_LINE}
+        ${table.pagination ? 'pageSize: 20,       // 分页每页显示条数' : DELETE_THIS_LINE}
+        ${(hasDelete || hasBatchDelete) ? 'deleting: false,    // 删除中loading' : DELETE_THIS_LINE}
         ${isModalEdit ? 'visible: false,     // 添加、修改弹框' : DELETE_THIS_LINE}
         ${isModalEdit ? 'id: null,           // 需要修改的数据id' : DELETE_THIS_LINE}
     };
 
     columns = [
-        ${columns.map(item => `{title: '${item.title}', dataIndex: '${item.dataIndex}', width: 200},`).join('\n        ')}
+        ${columns.map(item => `{title: '${item.title}', dataIndex: '${item.dataIndex}', width: 200${renderTime(item)}},`).join('\n        ')}
         ${operators ? `{
             title: '操作', dataIndex: 'operator', width: 100,
             render: (value, record) => {
                 const {id, name} = record;
-                ${hasDelete ? `const {singleDeleting} = this.state;
-                const deleting = singleDeleting[id];` : DELETE_THIS_LINE}
                 const items = [
                     ${operatorEdit ? `{
                         label: '修改',
@@ -88,7 +100,6 @@ export default class UserCenter extends Component {
                         label: '删除',
                         ${operatorDelete.iconMode ? `icon: '${operatorDelete.icon}',` : DELETE_THIS_LINE}
                         color: 'red',
-                        loading: deleting,
                         confirm: {
                             title: \`您确定删除"\${name}"?\`,
                             onConfirm: () => this.handleDelete(id),
@@ -107,48 +118,37 @@ export default class UserCenter extends Component {
     ];
 
     componentDidMount() {
-        this.handleSearch();
+        this.handleSubmit();
     }
 
-    handleSearch = (e) => {
-        e && e.preventDefault();
+    handleSubmit = (values) => {
         if (this.state.loading) return;
 
-        ${queries ? `this.props.form.validateFieldsAndScroll((err, values) => {
-            if (err) return;` : DELETE_THIS_LINE}
+        ${table.pagination ? 'const {pageNum, pageSize} = this.state;' : DELETE_THIS_LINE}
+        const params = {
+            ${queries ? '...values,' : DELETE_THIS_LINE}
+            ${table.pagination ? `pageNum,
+            pageSize,` : DELETE_THIS_LINE}
+        };
 
-            ${table.pagination ? 'const {pageNum, pageSize} = this.state;' : DELETE_THIS_LINE}
-            const params = {
-                ${queries ? '...values,' : DELETE_THIS_LINE}
-                ${table.pagination ? `pageNum,
-                pageSize,` : DELETE_THIS_LINE}
-            };
+        this.setState({loading: true});
+        this.props.ajax.${base.ajax.search.method}('${base.ajax.search.url}', params)
+            .then(res => {
+                const dataSource = res?.list || [];
+                const total = res?.total || 0;
 
-            this.setState({loading: true});
-            this.props.ajax.${base.ajax.search.method}('${base.ajax.search.url}', params)
-                .then(res => {
-                    const dataSource = res?.list || [];
-                    const total = res?.total || 0;
-
-                    this.setState({dataSource, total});
-                })
-                .finally(() => this.setState({loading: false}));
-        ${queries ? '});' : DELETE_THIS_LINE}
+                this.setState({dataSource, total});
+            })
+            .finally(() => this.setState({loading: false}));
     };
 
     ${hasDelete ? `handleDelete = (id) => {
-        const singleDeleting = {...this.state.singleDeleting};
+        if(this.state.deleting) return;
 
-        if (singleDeleting[id]) return;
-
-        singleDeleting[id] = true;
-        this.setState({singleDeleting});
+        this.setState({deleting: true});
         this.props.ajax.${base.ajax.delete.method}(\`${base.ajax.delete.url.replace('{id}', '${id}')}\`, null, {successTip: '删除成功！', errorTip: '删除失败！'})
-            .then(() => this.handleSearch())
-            .finally(() => {
-                singleDeleting[id] = false;
-                this.setState({singleDeleting});
-            });
+            .then(() => this.form.submit())
+            .finally(() => this.setState({deleting: false}));
     };` : DELETE_THIS_LINE}
 
     ${hasBatchDelete ? `handleBatchDelete = () => {
@@ -170,7 +170,7 @@ export default class UserCenter extends Component {
             onOk: () => {
                 this.setState({deleting: true});
                 this.props.ajax.${base.ajax.batchDelete.method}('${base.ajax.batchDelete.url}', {ids: selectedRowKeys}, {successTip: '删除成功！', errorTip: '删除失败！'})
-                    .then(() => this.handleSearch())
+                    .then(() => this.form.submit())
                     .finally(() => this.setState({deleting: false}));
             },
         })
@@ -183,7 +183,7 @@ export default class UserCenter extends Component {
     render() {
         const {
             loading,
-            ${hasBatchDelete ? 'deleting,' : DELETE_THIS_LINE}
+            ${hasBatchDelete || hasDelete ? 'deleting,' : DELETE_THIS_LINE}
             dataSource,
             ${table.selectable ? 'selectedRowKeys,' : DELETE_THIS_LINE}
             ${table.pagination ? 'total,' : DELETE_THIS_LINE}
@@ -193,85 +193,70 @@ export default class UserCenter extends Component {
             ${isModalEdit ? 'id,' : DELETE_THIS_LINE}
         } = this.state;
 
-        ${queries ? `const {form} = this.props;
-        const formProps = {
-            form,
+        ${queries ? `const formProps = {
             width: 220,
             style: {paddingLeft: 16},
         };` : DELETE_THIS_LINE}
         ${hasBatchDelete && table.selectable ? 'const disabledDelete = !selectedRowKeys?.length;' : DELETE_THIS_LINE}
 
         return (
-            <PageContent>
+            <PageContent loading={loading${hasBatchDelete || hasDelete ? ' || deleting' : ''}}>
                 ${queries ? `<QueryBar>
-                    <Form onSubmit={this.handleSearch}>
+                    <Form
+                        name="${base.moduleName}-query"
+                        ref={form => this.form = form}
+                        onFinish={this.handleSubmit}
+                    >
                         <FormRow>
                             ${queries.map(item => `<FormElement
                                 {...formProps}
                                 ${item.type !== 'input' ? `type="${item.type}"` : DELETE_THIS_LINE}
                                 label="${item.label}"
-                                field="${item.field}"
+                                name="${item.field}"
                                 ${WITH_OPTIONS_TYPE.includes(item.type) ? `options={[
                                     {value: '1', label: '选项1'},
                                     {value: '2', label: '选项2'},
                                 ]}` : DELETE_THIS_LINE}
                             />`).join('\n                            ')}
-                            <FormElement layout width="auto">
+                            <FormElement layout>
                                 <Button type="primary" htmlType="submit">提交</Button>
-                                <Button onClick={() => form.resetFields()}>重置</Button>
+                                <Button onClick={() => this.form.resetFields()}>重置</Button>
                             </FormElement>
+                            ${tools ? `${tools.find(item => item.text === '添加') ? `<Button type="primary" onClick={() => ${isModalEdit ? `this.setState({visible: true, id: null})` : `this.props.history.push('${base.path}/_/edit/:id')`}}>添加</Button>` : DELETE_THIS_LINE}
+                            ${tools.find(item => item.text === '删除') ? `<Button danger ${table.selectable ? 'disabled={disabledDelete} ' : ''}onClick={this.handleBatchDelete}>删除</Button>` : DELETE_THIS_LINE}
+                            ${tools.filter(item => !['添加', '删除'].includes(item.text)).length ? tools.filter(item => !['添加', '删除'].includes(item.text)).map(item => `<Button type="primary" onClick={this.${item.handle}}>${item.text}</Button>`).join('\n                             ') : DELETE_THIS_LINE}` : DELETE_THIS_LINE}
                         </FormRow>
                     </Form>
                 </QueryBar>` : DELETE_THIS_LINE}
-                ${tools ? `<ToolBar
-                    items={[
-                        ${tools.find(item => item.text === '添加') ? `{
-                            type: 'primary',
-                            icon: 'plus',
-                            text: '添加',
-                            ${isModalEdit ? `onClick: () => this.setState({visible: true, id: null}),` : DELETE_THIS_LINE}
-                            ${isPageEdit ? `onClick: () => this.props.history.push('${base.path}/_/edit/:id'),` : DELETE_THIS_LINE}
-                        },` : DELETE_THIS_LINE}
-                        ${tools.find(item => item.text === '删除') ? `{
-                            type: 'danger',
-                            icon: 'delete',
-                            text: '删除',
-                            loading: deleting,
-                            ${table.selectable ? 'disabled: disabledDelete,' : DELETE_THIS_LINE}
-                            onClick: this.handleBatchDelete,
-                        },` : DELETE_THIS_LINE}
-                        ${tools.filter(item => !['添加', '删除'].includes(item.text)).map(item => `{
-                            type: 'primary',
-                            icon: '${item.icon}',
-                            text: '${item.text}',
-                            onClick: this.${item.handle},
-                        },`).join('\n                        ')}
-                    ]}
-                />` : DELETE_THIS_LINE}
+                ${(!queries && tools) ? `<ToolBar>
+                    ${tools ? `${tools.find(item => item.text === '添加') ? `<Button type="primary" onClick={() => ${isModalEdit ? `this.setState({visible: true, id: null})` : `this.props.history.push('${base.path}/_/edit/:id')`}}>添加</Button>` : DELETE_THIS_LINE}
+                    ${tools.find(item => item.text === '删除') ? `<Button danger ${table.selectable ? 'disabled={disabledDelete} ' : ''}onClick={this.handleBatchDelete}>删除</Button>` : DELETE_THIS_LINE}
+                    ${tools.filter(item => !['添加', '删除'].includes(item.text)).length ? tools.filter(item => !['添加', '删除'].includes(item.text)).map(item => `<Button type="primary" onClick={this.${item.handle}}>${item.text}</Button>`).join('\n                     ') : DELETE_THIS_LINE}` : DELETE_THIS_LINE}
+                </ToolBar>` : DELETE_THIS_LINE}
                 <Table
                     ${table.serialNumber ? 'serialNumber' : DELETE_THIS_LINE}
                     ${table.selectable ? `rowSelection={{
                         selectedRowKeys,
                         onChange: selectedRowKeys => this.setState({selectedRowKeys}),
                     }}` : DELETE_THIS_LINE}
-                    loading={loading}
                     columns={this.columns}
                     dataSource={dataSource}
                     rowKey="id"
-                    ${table.pagination ? 'pagination={false}' : DELETE_THIS_LINE}
+                    ${table.serialNumber && table.pagination ? 'pageNum={pageNum}' : DELETE_THIS_LINE}
+                    ${table.serialNumber && table.pagination ? 'pageSize={pageSize}' : DELETE_THIS_LINE}
                 />
                 ${table.pagination ? `<Pagination
                     total={total}
                     pageNum={pageNum}
                     pageSize={pageSize}
-                    onPageNumChange={pageNum => this.setState({pageNum}, this.handleSearch)}
-                    onPageSizeChange={pageSize => this.setState({pageSize, pageNum: 1}, this.handleSearch)}
+                    onPageNumChange={pageNum => this.setState({pageNum}, () => this.form.submit())}
+                    onPageSizeChange={pageSize => this.setState({pageSize, pageNum: 1}, () => this.form.submit())}
                 />` : DELETE_THIS_LINE}
                 ${isModalEdit ? `<EditModal
                     visible={visible}
                     id={id}
                     isEdit={id !== null}
-                    onOk={() => this.setState({visible: false}, this.handleSearch)}
+                    onOk={() => this.setState({visible: false}, () => this.form.submit())}
                     onCancel={() => this.setState({visible: false})}
                 />` : DELETE_THIS_LINE}
             </PageContent>

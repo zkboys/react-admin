@@ -1,8 +1,7 @@
 import React from 'react';
 import {Route} from 'react-router-dom';
-import {isLogin} from '@/commons';
-import Error401 from '@/pages/error/Error401';
-import config from '@/commons/config-hoc';
+import {isLogin, toLogin} from 'src/commons';
+import config from 'src/commons/config-hoc';
 import {keepAliveRoutes} from './routes';
 
 /**
@@ -17,15 +16,15 @@ import {keepAliveRoutes} from './routes';
             selectedMenu: state.menu.selectedMenu,
             keepAliveSystem: state.system.keepAlive,
             tabsShow: state.settings.tabsShow,
-        }
+        };
     },
 })
 export default class KeepAuthRoute extends React.Component {
-    componentWillUpdate() {
+    componentDidUpdate() {
         if (this.tabsChange) {
             this.tabsChange = false;
             this.props.action.system.setTabs(this.tabs);
-            console.timeEnd('active');
+            // console.timeEnd('active');
         }
     }
 
@@ -47,7 +46,10 @@ export default class KeepAuthRoute extends React.Component {
                     const keepAlive = configKeepAlive === void 0 ? keepAliveSystem : configKeepAlive;
                     const {history} = props;
                     const {action: {system}} = this.props;
-                    let component = (noAuth || isLogin()) ? <Component {...props}/> : <Error401 {...props}/>;
+
+                    if (!noAuth && !isLogin()) return toLogin();
+
+                    let component = <Component {...props}/>;
 
                     // 如果页面现实tabs，或者有页面启用了keepAlive 需要对tabs进行操作
                     if (tabsShow || keepAlive || keepAliveRoutes.length) {
@@ -62,7 +64,12 @@ export default class KeepAuthRoute extends React.Component {
                         if (nextActiveTab) {
                             nextActiveTab.nextActive = false;
                             setTimeout(() => {
-                                history.push(nextActiveTab.path);
+                                const iframePagePrefix = '/iframe_page_/';
+                                let path = nextActiveTab.path;
+                                if (path.startsWith(iframePagePrefix)) {
+                                    path = `${iframePagePrefix}${window.encodeURIComponent(path.replace(iframePagePrefix, ''))}`;
+                                }
+                                history.push(path);
                             });
                             return keepAlive ? null : component;
                         }
@@ -89,7 +96,7 @@ export default class KeepAuthRoute extends React.Component {
 
                             this.props.publish('tab-show', currentTab.path);
 
-                            console.time('active');
+                            // console.time('active');
 
                             // 在componentWillUpdate中执行 system.setTabs
                             // 加快tab页切换，开发：80ms左右，生产：10ms左右
@@ -108,7 +115,7 @@ export default class KeepAuthRoute extends React.Component {
                             setTimeout(() => {
                                 currentTab.component = TabComponent;
                                 system.setTabs([...tabs]);
-                            })
+                            });
                         }
 
                         // 添加一个标签 当前地址对应的tab页不存在，进行添加
@@ -146,7 +153,7 @@ export default class KeepAuthRoute extends React.Component {
                                 newAddTab.text = this.props.title;
                                 newAddTab.icon = this.props.selectedMenu?.icon;
                                 system.setTabs([...tabs]);
-                            })
+                            });
                         }
                     }
 
