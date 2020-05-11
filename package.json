@@ -1,6 +1,6 @@
 {
     "name": "react-adminv4",
-    "version": "0.1.0",
+    "version": "4.0",
     "private": true,
     "scripts": {
         "start": "node scripts/start.js",
@@ -10,7 +10,8 @@
         "build:analyz": "cross-env ANALYZ=true yarn build",
         "build:time": "cross-env ANALYZ_TIME=true yarn build",
         "test": "node scripts/test.js",
-        "gen": "node scripts/gen/index.js"
+        "gen": "node scripts/gen/index.js",
+        "push": "node git-add-commit-push.js"
     },
     "dependencies": {
         "@ant-design/icons": "^4.0.3",
@@ -57,6 +58,7 @@
         "globby": "6",
         "html-webpack-plugin": "4.0.0-beta.11",
         "identity-obj-proxy": "3.0.0",
+        "inflection": "^1.12.0",
         "less": "^3.11.1",
         "less-loader": "^5.0.0",
         "lodash": "^4.17.15",

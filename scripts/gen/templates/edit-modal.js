@@ -44,6 +44,12 @@ export default class EditModal extends Component {
         this.props.ajax.${base.ajax.detail.method}(\`${base.ajax.detail.url.replace('{id}', '${id}')}\`)
             .then(res => {
                 this.setState({data: res});
+
+                // 不处理null，下拉框不显示placeholder
+                Object.entries(res).forEach(([key, value]) => {
+                    if (value === null) res[key] = undefined;
+                });
+
                 this.form.setFieldsValue(res);
             })
             .finally(() => this.setState({loading: false}));

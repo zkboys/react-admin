@@ -1,20 +1,18 @@
 import React, {Component} from 'react';
-import {Button, Form, Modal} from 'antd';
+import {Button, Modal} from 'antd';
 import PageContent from 'src/layouts/page-content';
 import config from 'src/commons/config-hoc';
 import {
-    QueryBar,
-    FormRow,
-    FormElement,
+    ToolBar,
     Table,
     Operator,
     Pagination,
 } from 'src/library/components';
+import EditModal from './EditModal';
 
 @config({
-    path: '/user-center',
+    path: '/products',
     ajax: true,
-    router: true,
 })
 export default class UserCenter extends Component {
     state = {
@@ -25,10 +23,13 @@ export default class UserCenter extends Component {
         pageNum: 1,         // 分页当前页
         pageSize: 20,       // 分页每页显示条数
         deleting: false,    // 删除中loading
+        visible: false,     // 添加、修改弹框
+        id: null,           // 需要修改的数据id
     };
 
     columns = [
-        {title: '用户名', dataIndex: 'name', width: 200},
+        {title: '描述', dataIndex: 'description', width: 200},
+        {title: '产品名称', dataIndex: 'name', width: 200},
         {
             title: '操作', dataIndex: 'operator', width: 100,
             render: (value, record) => {
@@ -36,7 +37,7 @@ export default class UserCenter extends Component {
                 const items = [
                     {
                         label: '修改',
-                        onClick: () => this.props.history.push(`/user-center/_/edit/${id}`),
+                        onClick: () => this.setState({visible: true, id}),
                     },
                     {
                         label: '删除',
@@ -63,13 +64,12 @@ export default class UserCenter extends Component {
 
         const {pageNum, pageSize} = this.state;
         const params = {
-            ...values,
             pageNum,
             pageSize,
         };
 
         this.setState({loading: true});
-        this.props.ajax.get('/user-center', params)
+        this.props.ajax.get('/products', params)
             .then(res => {
                 const dataSource = res?.list || [];
                 const total = res?.total || 0;
@@ -83,7 +83,7 @@ export default class UserCenter extends Component {
         if(this.state.deleting) return;
 
         this.setState({deleting: true});
-        this.props.ajax.del(`/user-center/${id}`, null, {successTip: '删除成功！', errorTip: '删除失败！'})
+        this.props.ajax.del(`/products/${id}`, null, {successTip: '删除成功！', errorTip: '删除失败！'})
             .then(() => this.form.submit())
             .finally(() => this.setState({deleting: false}));
     };
@@ -106,7 +106,7 @@ export default class UserCenter extends Component {
             content,
             onOk: () => {
                 this.setState({deleting: true});
-                this.props.ajax.del('/user-center', {ids: selectedRowKeys}, {successTip: '删除成功！', errorTip: '删除失败！'})
+                this.props.ajax.del('/products', {ids: selectedRowKeys}, {successTip: '删除成功！', errorTip: '删除失败！'})
                     .then(() => this.form.submit())
                     .finally(() => this.setState({deleting: false}));
             },
@@ -122,37 +122,18 @@ export default class UserCenter extends Component {
             total,
             pageNum,
             pageSize,
+            visible,
+            id,
         } = this.state;
 
-        const formProps = {
-            width: 220,
-            style: {paddingLeft: 16},
-        };
         const disabledDelete = !selectedRowKeys?.length;
 
         return (
             <PageContent loading={loading || deleting}>
-                <QueryBar>
-                    <Form
-                        name="user-center-query"
-                        ref={form => this.form = form}
-                        onFinish={this.handleSubmit}
-                    >
-                        <FormRow>
-                            <FormElement
-                                {...formProps}
-                                label="用户名"
-                                name="name"
-                            />
-                            <FormElement layout>
-                                <Button type="primary" htmlType="submit">提交</Button>
-                                <Button onClick={() => this.form.resetFields()}>重置</Button>
-                            </FormElement>
-                            <Button type="primary" onClick={() => this.props.history.push('/user-center/_/edit/:id')}>添加</Button>
-                            <Button danger disabled={disabledDelete} onClick={this.handleBatchDelete}>删除</Button>
-                        </FormRow>
-                    </Form>
-                </QueryBar>
+                <ToolBar>
+                    <Button type="primary" onClick={() => this.setState({visible: true, id: null})}>添加</Button>
+                    <Button danger disabled={disabledDelete} onClick={this.handleBatchDelete}>删除</Button>
+                </ToolBar>
                 <Table
                     serialNumber
                     rowSelection={{
@@ -171,6 +152,13 @@ export default class UserCenter extends Component {
                     pageSize={pageSize}
                     onPageNumChange={pageNum => this.setState({pageNum}, () => this.form.submit())}
                     onPageSizeChange={pageSize => this.setState({pageSize, pageNum: 1}, () => this.form.submit())}
+                />
+                <EditModal
+                    visible={visible}
+                    id={id}
+                    isEdit={id !== null}
+                    onOk={() => this.setState({visible: false}, () => this.form.submit())}
+                    onCancel={() => this.setState({visible: false})}
                 />
             </PageContent>
         );

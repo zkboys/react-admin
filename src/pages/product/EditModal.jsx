@@ -30,9 +30,15 @@ export default class EditModal extends Component {
         const {id} = this.props;
 
         this.setState({loading: true});
-        this.props.ajax.get(`/user-center/${id}`)
+        this.props.ajax.get(`/products/${id}`)
             .then(res => {
                 this.setState({data: res});
+
+                // 不处理null，下拉框不显示placeholder
+                Object.entries(res).forEach(([key, value]) => {
+                    if (value === null) res[key] = undefined;
+                });
+
                 this.form.setFieldsValue(res);
             })
             .finally(() => this.setState({loading: false}));
@@ -44,7 +50,7 @@ export default class EditModal extends Component {
         const {isEdit} = this.props;
         const successTip = isEdit ? '修改成功！' : '添加成功！';
         const ajaxMethod = isEdit ? this.props.ajax.put : this.props.ajax.post;
-        const ajaxUrl = isEdit ? '/user-center' : '/user-center';
+        const ajaxUrl = isEdit ? '/products' : '/products';
 
         this.setState({loading: true});
         ajaxMethod(ajaxUrl, values, {successTip})
@@ -70,7 +76,7 @@ export default class EditModal extends Component {
                 onCancel={() => this.form.resetFields()}
             >
                 <Form
-                    name="user-center-modal-edit"
+                    name="product-modal-edit"
                     initialValues={data}
                     ref={form => this.form = form}
                     onFinish={this.handleSubmit}
@@ -78,8 +84,16 @@ export default class EditModal extends Component {
                     {isEdit ? <FormElement {...formProps} type="hidden" name="id"/> : null}
                     <FormElement
                         {...formProps}
-                        label="用户名"
+                        label="描述"
+                        name="description"
+                        maxLength={200}
+                    />
+                    <FormElement
+                        {...formProps}
+                        label="产品名称"
                         name="name"
+                        required
+                        maxLength={50}
                     />
                 </Form>
             </ModalContent>
