@@ -1,4 +1,4 @@
-import SXAjax, {createAjaxHoc} from 'src/library/ajax';
+import SXAjax, {createHoc, createHooks} from 'src/library/ajax';
 import mockUrls from '../mock/url-config';
 import handleError from './handle-error';
 import handleSuccess from './handle-success';
@@ -15,11 +15,24 @@ const _ajax = new SXAjax({
     onShowErrorTip: (error, errorTip) => handleError({error, errorTip}),
     onShowSuccessTip: (response, successTip) => handleSuccess({successTip}),
     isMock,
+    reject: false,
 });
 getDefaultSettings(_ajax);
 
+const {
+    useGet: _useGet,
+    useDel: _useDel,
+    usePost: _usePost,
+    usePut: _usePut,
+} = createHooks(_ajax);
+
+export const useGet = _useGet;
+export const useDel = _useDel;
+export const usePost = _usePost;
+export const usePut = _usePut;
+
 // ajax高阶组件
-export const ajaxHoc = createAjaxHoc(_ajax);
+export const ajaxHoc = createHoc(_ajax);
 
 // ajax工具，不含有 errorTip和successTip 一般models会使用
 export const ajax = new SXAjax({isMock});
