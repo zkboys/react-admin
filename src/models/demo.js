@@ -129,7 +129,7 @@ export default {
             }, 2000)
         })
     },
-    testAsync: async (time) => {
+    async testAsync (time){
         return new Promise((resolve, reject) => {
             setTimeout(() => {
                 resolve({asyncResult: `${time}秒执行结果`});

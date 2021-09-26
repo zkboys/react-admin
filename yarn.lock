@@ -1629,10 +1629,10 @@
   resolved "https://registry.npmjs.org/@polka/url/-/url-1.0.0-next.12.tgz#431ec342a7195622f86688bbda82e3166ce8cb28"
   integrity sha512-6RglhutqrGFMO1MNUXp95RBuYIuc8wTnMAV5MUhLmjTOy78ncwOw7RgeQ/HeymkKXRhZd0s2DNrM1rL7unk3MQ==
 
-"@ra-lib/admin@^0.0.103":
-  version "0.0.103"
-  resolved "https://registry.npmjs.org/@ra-lib/admin/-/admin-0.0.103.tgz#4bdd5ce91820701bc083faf4adeb25f061f0e7a1"
-  integrity sha512-VwYCWX4O2lm542tkbuNLVWmMaAv6rVeKpN2Q2zmsEV8n/suo13F7f2o+/EZ2D47zcGjcrvA5YK9PX1S4enM/bg==
+"@ra-lib/admin@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@ra-lib/admin/-/admin-0.1.0.tgz#816ddc1ebc585bb88bf4222d39e84a2e77c9919e"
+  integrity sha512-1Ii99XkLH+iuaFGG3bLm6jzpFCkoQXuR4KR3qX4UdBRBbXTKxtTGOw7P430VwPPjfvIPYYrDzyrJFCh2OZ00ug==
   dependencies:
     "@ra-lib/ajax" "^0.1.24"
     "@ra-lib/babel-plugin-attribute-wrapper" "^0.0.17"
@@ -1640,7 +1640,7 @@
     "@ra-lib/config-loader" "^0.1.6"
     "@ra-lib/hoc" "^0.1.6"
     "@ra-lib/hooks" "^0.1.8"
-    "@ra-lib/model" "^0.1.9"
+    "@ra-lib/model" "^0.1.10"
     "@ra-lib/util" "^0.1.21"
 
 "@ra-lib/ajax@^0.1.24":
@@ -1689,10 +1689,10 @@
   resolved "https://registry.npmjs.org/@ra-lib/hooks/-/hooks-0.1.8.tgz#d386ecd6ef297d0ea501f5570967bf9f1f55d935"
   integrity sha512-ue67jnIxzc+0/e7dV+UUvGJirYjgnMjC8IDLv58HKDAyCYm/nDBrSjWrgwqJBA9HLCZRpQg2EtIVeZUHt060zg==
 
-"@ra-lib/model@^0.1.9":
-  version "0.1.9"
-  resolved "https://registry.npmjs.org/@ra-lib/model/-/model-0.1.9.tgz#e5476b4c4a77a47809968d20baab29e97caf372c"
-  integrity sha512-jTSpLIMXnEU4xNxDZ75BBz8ZeTv2nG4WPgftdClfYFXOpEaftSFJ2ZS/EurpusKNxh36iWQ8Iv7DNbFPBnEwrw==
+"@ra-lib/model@^0.1.10":
+  version "0.1.10"
+  resolved "https://registry.npmjs.org/@ra-lib/model/-/model-0.1.10.tgz#54dcecd39e68b4118e170210b16e573f9b1f001a"
+  integrity sha512-tycQoHU+62sZFwCCpnbixcfjQC+LbCV6gSlhja0Y3O/bvvXBUqNKlgFPmQ7lyw5IIkKamC5OSxTiPlZIadEuHQ==
 
 "@ra-lib/rancher-deploy@^1.0.14":
   version "1.0.14"
@@ -3646,9 +3646,11 @@ caniuse-api@^3.0.0:
     lodash.uniq "^4.5.0"
 
 caniuse-lite@^1.0.0, caniuse-lite@^1.0.30000981, caniuse-lite@^1.0.30001109, caniuse-lite@^1.0.30001125, caniuse-lite@^1.0.30001181:
-  version "1.0.30001208"
-  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001208.tgz#a999014a35cebd4f98c405930a057a0d75352eb9"
-  integrity sha512-OE5UE4+nBOro8Dyvv0lfx+SRtfVIOM9uhKqFmJeUbGriqhhStgp1A0OyBpgy3OUF8AhYCT+PVwPC1gMl2ZcQMA==
+  version "1.0.30001260"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001260.tgz"
+  integrity sha512-Fhjc/k8725ItmrvW5QomzxLeojewxvqiYCKeFcfFEhut28IVLdpHU19dneOmltZQIE5HNbawj1HYD+1f2bM1Dg==
+  dependencies:
+    nanocolors "^0.1.0"
 
 capture-exit@^2.0.0:
   version "2.0.0"
@@ -8892,6 +8894,11 @@ nan@^2.12.1:
   version "2.14.2"
   resolved "https://registry.npmjs.org/nan/-/nan-2.14.2.tgz#f5376400695168f4cc694ac9393d0c9585eeea19"
   integrity sha512-M2ufzIiINKCuDfBSAUr1vWQ+vuVcA9kqx8JJUsbQi6yf1uGRyb7HfpdfUr5qLXf3B/t8dPvcjhKMmlfnP47EzQ==
+
+nanocolors@^0.1.0:
+  version "0.1.12"
+  resolved "https://registry.npmjs.org/nanocolors/-/nanocolors-0.1.12.tgz#8577482c58cbd7b5bb1681db4cf48f11a87fd5f6"
+  integrity sha512-2nMHqg1x5PU+unxX7PGY7AuYxl2qDx7PSrTRjizr8sxdd3l/3hBuWWaki62qmtYm2U5i4Z5E7GbjlyDFhs9/EQ==
 
 nanoid@^3.1.22:
   version "3.1.22"
